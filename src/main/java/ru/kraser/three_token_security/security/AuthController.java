@@ -5,15 +5,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.kraser.three_token_security.exception.AuthException;
+import ru.kraser.three_token_security.model.ApiResponse;
 import ru.kraser.three_token_security.security.dto.AuthenticationRequest;
 import ru.kraser.three_token_security.security.dto.AuthenticationResponse;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 
 import static ru.kraser.three_token_security.util.Utilities.*;
 
@@ -76,6 +79,26 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE,
                         buildRefreshCookie(authResult.refreshToken()).toString())
                 .body(authResult.apiResponse());*/
+    }
+
+    // For test - cookie spoofing
+    @PatchMapping(path = AUTH_URL + REFRESH_URL)
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse patchTechnician() {
+        LocalDateTime now = LocalDateTime.now();
+
+        log.info("Getting response from PATCH_TECHNICIAN_URL...");
+
+        ApiResponse apiResponse = ApiResponse.builder()
+                .message("Response from Patch Technician url")
+                .status(201)
+                .httpStatus(HttpStatus.OK)
+                .timestamp(now)
+                .build();
+
+        log.info("Response from PATCH_TECHNICIAN_URL received successfully.");
+
+        return apiResponse;
     }
 
     @PostMapping(AUTH_URL + LOGOUT_URL)

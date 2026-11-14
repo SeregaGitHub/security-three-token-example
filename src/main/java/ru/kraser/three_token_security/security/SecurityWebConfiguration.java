@@ -1,6 +1,5 @@
 package ru.kraser.three_token_security.security;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -43,6 +42,9 @@ public class SecurityWebConfiguration {
     private boolean csrfCookieSecure;
     //  only if no nginx (and if cross-origin: frontend and backend on differed ports)  //
 
+    @Value("${app.csrf.hmac-secret}")
+    private String csrfHmacSecret;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -54,8 +56,9 @@ public class SecurityWebConfiguration {
                     что требует от жертвы ввода пароля атакующего — маловероятно
                  */
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(csrfRepository())
-                    // для prod можно рассмотреть XorCsrfTokenRequestAttributeHandler() - защита от BREACH-атак
+                        //.csrfTokenRepository(csrfRepository())
+                        .csrfTokenRepository(signedCsrfTokenRepository())
+                                                  // XorCsrfTokenRequestAttributeHandler() - защита от BREACH-атак
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
                         .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
                         .requireCsrfProtectionMatcher(request -> {
@@ -118,22 +121,32 @@ public class SecurityWebConfiguration {
     }
 
     private CorsConfigurationSource corsConfigurationSource() {
-        return new CorsConfigurationSource() {
-            @Override
-            public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
-                CorsConfiguration cfg = new CorsConfiguration();
-                cfg.setAllowedOrigins(List.of(allowedFrontendUrl));
-                cfg.setAllowedMethods(Collections.singletonList("*"));
-                cfg.setAllowedHeaders(Collections.singletonList("*"));
-                cfg.setExposedHeaders(List.of(CSRF_COOKIE));   // чтобы клиент мог прочитать XSRF-TOKEN
-                cfg.setAllowCredentials(true);                 // обязательно для cookie
-                cfg.setMaxAge(3600L);
-                return cfg;
-            }
+        return request -> {
+            CorsConfiguration cfg = new CorsConfiguration();
+            cfg.setAllowedOrigins(List.of(allowedFrontendUrl));
+            cfg.setAllowedMethods(Collections.singletonList("*"));
+            cfg.setAllowedHeaders(Collections.singletonList("*"));
+            cfg.setExposedHeaders(List.of(CSRF_COOKIE));    // чтобы клиент мог прочитать XSRF-TOKEN
+            cfg.setAllowCredentials(true);                  // обязательно для cookie
+            cfg.setMaxAge(3600L);
+            return cfg;
         };
     }
 
-    private CookieCsrfTokenRepository csrfRepository() {
+    private SignedCsrfTokenRepository signedCsrfTokenRepository() {
+        CookieCsrfTokenRepository delegate = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        delegate.setCookieName(CSRF_COOKIE);
+        delegate.setHeaderName(CSRF_HEADER);
+
+        delegate.setCookieCustomizer(cookie -> cookie
+                .sameSite(csrfCookieSameSite)
+                .secure(csrfCookieSecure));
+
+        CsrfTokenSigner signer = new CsrfTokenSigner(csrfHmacSecret);
+        return new SignedCsrfTokenRepository(delegate, signer);
+    }
+
+    /*private CookieCsrfTokenRepository csrfRepository() {
         CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfTokenRepository.setCookieName(CSRF_COOKIE);
         csrfTokenRepository.setHeaderName(CSRF_HEADER);
@@ -145,5 +158,5 @@ public class SecurityWebConfiguration {
         // only if no nginx (and if cross-origin: frontend and backend on differed ports) //
 
         return csrfTokenRepository;
-    }
+    }*/
 }
