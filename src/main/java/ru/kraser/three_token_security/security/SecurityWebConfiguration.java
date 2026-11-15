@@ -134,16 +134,16 @@ public class SecurityWebConfiguration {
     }
 
     private SignedCsrfTokenRepository signedCsrfTokenRepository() {
-        CookieCsrfTokenRepository delegate = CookieCsrfTokenRepository.withHttpOnlyFalse();
-        delegate.setCookieName(CSRF_COOKIE);
-        delegate.setHeaderName(CSRF_HEADER);
+        CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        csrfTokenRepository.setCookieName(CSRF_COOKIE);
+        csrfTokenRepository.setHeaderName(CSRF_HEADER);
 
-        delegate.setCookieCustomizer(cookie -> cookie
+        csrfTokenRepository.setCookieCustomizer(cookie -> cookie
                 .sameSite(csrfCookieSameSite)
                 .secure(csrfCookieSecure));
 
         CsrfTokenSigner signer = new CsrfTokenSigner(csrfHmacSecret);
-        return new SignedCsrfTokenRepository(delegate, signer);
+        return new SignedCsrfTokenRepository(csrfTokenRepository, signer);
     }
 
     /*private CookieCsrfTokenRepository csrfRepository() {

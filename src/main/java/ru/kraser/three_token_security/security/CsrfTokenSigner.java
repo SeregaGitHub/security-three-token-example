@@ -11,8 +11,8 @@ public final class CsrfTokenSigner {
     private static final String HMAC_ALGORITHM = "HmacSHA256";
     private final SecretKeySpec secretKey;
 
-    public CsrfTokenSigner(String base64Secret) {
-        byte[] keyBytes = Base64.getDecoder().decode(base64Secret);
+    public CsrfTokenSigner(String csrfHmacSecret) {
+        byte[] keyBytes = Base64.getDecoder().decode(csrfHmacSecret);
         if (keyBytes.length < 32) {
             throw new IllegalArgumentException(
                     "CSRF HMAC secret must be at least 32 bytes (256 bits). " +
@@ -25,19 +25,20 @@ public final class CsrfTokenSigner {
         this.secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM);
     }*/
 
-    public String sign(String stringToken) {
+    public String sign(String stringToken, String userId) {
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             mac.init(secretKey);
-            byte[] hmacBytes = mac.doFinal(stringToken.getBytes(StandardCharsets.UTF_8));
+            String userIdAndToken = (userId == null ? "" : userId) + "|" + stringToken    ;
+            byte[] hmacBytes = mac.doFinal(userIdAndToken.getBytes(StandardCharsets.UTF_8));
             return Base64.getUrlEncoder().withoutPadding().encodeToString(hmacBytes);
         } catch (Exception e) {
             throw new IllegalStateException("Cannot sign csrf_token", e);
         }
     }
 
-    public boolean isValidSignature(String stringToken, String signature) {
-        String expected = sign(stringToken);
+    public boolean isValidSignature(String stringToken, String signature, String userId) {
+        String expected = sign(stringToken, userId);
         // Сравнение, устойчивое к timing-атакам
         return MessageDigest.isEqual(
                 expected.getBytes(StandardCharsets.UTF_8),
