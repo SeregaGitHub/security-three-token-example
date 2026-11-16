@@ -81,26 +81,6 @@ public class AuthController {
                 .body(authResult.apiResponse());*/
     }
 
-    // For test - cookie spoofing
-    @PatchMapping(path = AUTH_URL + REFRESH_URL)
-    @ResponseStatus(HttpStatus.OK)
-    public ApiResponse patchTechnician() {
-        LocalDateTime now = LocalDateTime.now();
-
-        log.info("Getting response from PATCH_TECHNICIAN_URL...");
-
-        ApiResponse apiResponse = ApiResponse.builder()
-                .message("Response from Patch Technician url")
-                .status(201)
-                .httpStatus(HttpStatus.OK)
-                .timestamp(now)
-                .build();
-
-        log.info("Response from PATCH_TECHNICIAN_URL received successfully.");
-
-        return apiResponse;
-    }
-
     @PostMapping(AUTH_URL + LOGOUT_URL)
     public ResponseEntity<Void> logout(
             @CookieValue(name = "${app.cookie.refresh-name:" + REFRESH_TOKEN_COOKIE + "}", required = false)

@@ -23,7 +23,8 @@ public class JwtUserDetails implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<SimpleGrantedAuthority> list = new ArrayList<>();
-        list.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())); // if User have field Role
+        list.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+                                              // "ROLE_" + if .requestMatchers(url).hasRole() not hasAuthority()
         return list;
     }
 

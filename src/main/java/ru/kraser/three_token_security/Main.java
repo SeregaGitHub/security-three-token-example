@@ -75,18 +75,31 @@ public class Main implements CommandLineRunner { ... }
 Выбор зависит от того, что важнее: производительность или мгновенный отзыв.
  */
 
-
 /*
-В приложении - обычный Double-Submit, он уязвим к подмене cookie через subdomain или MITM
-(если злоумышленник может установить свою cookie XSRF-TOKEN на домене приложения).
-В этом случае он ставит своё значение в cookie, своё — в заголовок,
-и проверка cookie == header проходит.
+    В коммите "add CsrfTokenSigner" (fc6c6c54) добавлена подпись csrf_token вместе с userId.
+Это даёт возможность защитить эндпоинты /admin, /technician, /employee, /default если:
 
-Signed Double-Submit решает эту проблему:
-сервер подписывает токен (HMAC) перед установкой в cookie.
-При проверке он валидирует подпись, а не просто сравнивает значения.
-Злоумышленник не может подписать свой токен — у него нет секретного ключа.
- */
+- добавить post, put и т.п.  методы для них с csrf_token (get и т.п. не проверяется)
+
+- добавить /admin/** и т.п. в requireCsrfProtectionMatcher
+
+- переставить фильтры       .addFilterBefore(jwtAuthenticationFilter, CsrfFilter.class)   // <- правильно
+
+boolean isProtectedPath = path.equals(BASE_URL + AUTH_URL + REFRESH_URL)
+        || path.equals(BASE_URL + AUTH_URL + LOGOUT_URL)
+        || path.startsWith(BASE_URL + ADMIN_URL)        // <- ДОБАВИТЬ
+        || path.startsWith(BASE_URL + TECHNICIAN_URL)   //
+        || path.startsWith(BASE_URL + EMPLOYEE_URL)     //
+        || path.startsWith(BASE_URL + DEFAULT_URL);     //
+
+- access токен должен быть в запросе       Authorization: Bearer <_>
+
+(сейчас таких эндпоинтов в проекте - нет)
+
+Это всё равно не защитит REFRESH_URL и LOGOUT_URL - они останутся уязвимы к -
+    "attacker with valid his csrf_token + stolen your refresh_token"
+(они по своей сути не содержат Authorization: Bearer <_> - значит не могут проверить userId)
+*/
 
 /*
                         Что нужно сделать фронтенду:

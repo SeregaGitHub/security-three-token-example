@@ -9,19 +9,19 @@ import org.springframework.security.web.csrf.DefaultCsrfToken;
 
 public class SignedCsrfTokenRepository implements CsrfTokenRepository {
 
-    private final CookieCsrfTokenRepository delegate;
+    private final CookieCsrfTokenRepository csrfTokenRepository;
     private final CsrfTokenSigner signer;
 
     public SignedCsrfTokenRepository(
-            CookieCsrfTokenRepository delegate, CsrfTokenSigner signer
+            CookieCsrfTokenRepository csrfTokenRepository, CsrfTokenSigner signer
     ) {
-        this.delegate = delegate;
+        this.csrfTokenRepository = csrfTokenRepository;
         this.signer = signer;
     }
 
     @Override
     public CsrfToken generateToken(HttpServletRequest request) {
-        CsrfToken raw = delegate.generateToken(request);
+        CsrfToken raw = csrfTokenRepository.generateToken(request);
         String signedValue = raw.getToken() + "." + signer.sign(raw.getToken());
         return new DefaultCsrfToken(raw.getHeaderName(), raw.getParameterName(), signedValue);
     }
@@ -29,12 +29,12 @@ public class SignedCsrfTokenRepository implements CsrfTokenRepository {
     @Override
     public void saveToken(CsrfToken token, HttpServletRequest request, HttpServletResponse response) {
         // token == null -> delegate удалит cookie (Max-Age=0)
-        delegate.saveToken(token, request, response);
+        csrfTokenRepository.saveToken(token, request, response);
     }
 
     @Override
     public CsrfToken loadToken(HttpServletRequest request) {
-        CsrfToken token = delegate.loadToken(request);
+        CsrfToken token = csrfTokenRepository.loadToken(request);
         if (token == null) {
             return null;   // cookie отсутствует
         }
